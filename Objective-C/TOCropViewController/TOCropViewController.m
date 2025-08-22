@@ -40,6 +40,7 @@ static const CGFloat kTOCropViewControllerToolbarHeight = 44.0f;
 
 /* Views */
 @property (nonatomic, strong) TOCropToolbar *toolbar;
+@property (nonatomic, strong) UINavigationBar *topBar;
 @property (nonatomic, strong, readwrite) TOCropView *cropView;
 @property (nonatomic, strong) UIView *toolbarSnapshotView;
 @property (nonatomic, strong, readwrite) UILabel *titleLabel;
@@ -460,6 +461,16 @@ static const CGFloat kTOCropViewControllerToolbarHeight = 44.0f;
         self.titleLabel.frame = [self frameForTitleLabelWithSize:self.titleLabel.frame.size verticalLayout:self.verticalLayout];
         [self.cropView moveCroppedContentToCenterAnimated:NO];
     }
+    
+    // 布局topBar
+    // 让导航栏自己计算系统默认大小
+    CGSize topBarSize = [self.topBar sizeThatFits:self.view.bounds.size];
+    // 导航栏从屏幕顶部开始，覆盖状态栏区域，实现一体化效果
+    CGRect topBarFrame = CGRectMake(0,
+                                    self.statusBarSafeInsets.top,
+                                    CGRectGetWidth(self.view.bounds),
+                                    topBarSize.height);
+    self.topBar.frame = topBarFrame;
 
     [UIView performWithoutAnimation:^{
         self.toolbar.frame = [self frameForToolbarWithVerticalLayout:self.verticalLayout];
@@ -1096,9 +1107,70 @@ static const CGFloat kTOCropViewControllerToolbarHeight = 44.0f;
 {
     if (!_toolbar) {
         _toolbar = [[TOCropToolbar alloc] initWithFrame:CGRectZero];
+        _toolbar.doneButtonHidden = true;
+        _toolbar.cancelButtonHidden = true;
+        _toolbar.clampButtonHidden = true;
         [self.view addSubview:_toolbar];
     }
     return _toolbar;
+}
+
+- (UINavigationBar *)topBar
+{
+    if (!_topBar) {
+        _topBar = [[UINavigationBar alloc] initWithFrame:CGRectZero];
+        
+        NSBundle *resourceBundle = TO_CROP_VIEW_RESOURCE_BUNDLE_FOR_OBJECT(self);
+        
+        // 设置导航栏样式为不透明黑色
+        _topBar.translucent = NO;
+        _topBar.barTintColor = [UIColor colorWithRed:0.063f green:0.063f blue:0.098f alpha:1];
+        _topBar.tintColor = [UIColor whiteColor];
+        _topBar.titleTextAttributes = @{NSForegroundColorAttributeName: [UIColor whiteColor]};
+        
+        // 设置状态栏样式为白色文字（适配黑色背景）
+        if (@available(iOS 13.0, *)) {
+            _topBar.overrideUserInterfaceStyle = UIUserInterfaceStyleDark;
+        }
+        _topBar.barStyle = UIBarStyleBlack;
+        
+        // 创建导航项
+        UINavigationItem *navItem = [[UINavigationItem alloc] init];
+        [navItem setTitle:NSLocalizedStringFromTableInBundle(@"Crop",
+                                                             @"TOCropViewControllerLocalizable",
+                                                             resourceBundle,
+                                                             nil)];
+        
+        // 添加左边关闭按钮
+        UIBarButtonItem *closeButton = [[UIBarButtonItem alloc] initWithTitle:NSLocalizedStringFromTableInBundle(@"Cancel",
+																	@"TOCropViewControllerLocalizable",
+																	resourceBundle,
+                                                                    nil) 
+                                                                         style:UIBarButtonItemStylePlain 
+                                                                        target:self 
+                                                                        action:@selector(cancelButtonTapped)];
+        navItem.leftBarButtonItem = closeButton;
+        
+        // 添加右边确定按钮
+        UIBarButtonItem *doneButton = [[UIBarButtonItem alloc] initWithTitle:NSLocalizedStringFromTableInBundle(@"Done",
+																	@"TOCropViewControllerLocalizable",
+																	resourceBundle,
+                                                                    nil) 
+                                                                        style:UIBarButtonItemStyleDone 
+                                                                       target:self 
+                                                                       action:@selector(doneButtonTapped)];
+        doneButton.tintColor = [UIColor colorWithRed:0.933f green:0.482f blue:0.188f alpha:1];
+        navItem.rightBarButtonItem = doneButton;
+        
+        // 设置导航项
+        [_topBar setItems:@[navItem]];
+        UIView *topBg = [[UIView alloc] initWithFrame:CGRectMake(0, 0, CGRectGetWidth(self.view.bounds), self.view.safeAreaInsets.top)];
+        topBg.backgroundColor = [UIColor colorWithRed:0.063f green:0.063f blue:0.098f alpha:1];
+        [self.view addSubview:topBg];
+        
+        [self.view addSubview:_topBar];
+    }
+    return _topBar;
 }
 
 - (UILabel *)titleLabel

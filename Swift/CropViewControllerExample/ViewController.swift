@@ -176,7 +176,6 @@ class ViewController: UIViewController, CropViewControllerDelegate, UIImagePicke
         let cropViewController = CropViewController(croppingStyle: self.croppingStyle, image: self.image!)
         cropViewController.delegate = self
         let viewFrame = view.convert(imageView.frame, to: navigationController!.view)
-        
         cropViewController.presentAnimatedFrom(self,
                                                fromImage: self.imageView.image,
                                                fromView: nil,
